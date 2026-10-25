@@ -1,0 +1,137 @@
+{
+  "places": [
+    {
+      "name": "Malay Fellas",
+      "kind": "restaurant",
+      "url": "https://maps.app.goo.gl/cKSRC2mrgiz879sQ7",
+      "lngLat": [-0.1874784, 51.5129297]
+    },
+    {
+      "name": "Graam Bangla",
+      "kind": "restaurant",
+      "url": "https://maps.app.goo.gl/QTU7v6sBtwgyiRUv7",
+      "lngLat": [-0.0714707, 51.5188667]
+    },
+    {
+      "name": "Spitalfields City Farm",
+      "kind": "landmark",
+      "url": "https://maps.app.goo.gl/ptSy2LpBsbdpouP79",
+      "lngLat": [-0.0674349, 51.5221634]
+    },
+    {
+      "name": "Lina Stores Marylebone",
+      "kind": "restaurant",
+      "url": "https://maps.app.goo.gl/q9RhFa6P29wNNca86",
+      "lngLat": [-0.1501996, 51.516255]
+    },
+    {
+      "name": "Daunt Books Marylebone",
+      "kind": "landmark",
+      "url": "https://maps.app.goo.gl/FSEZtbvCNWTtZ8569",
+      "lngLat": [-0.1519917, 51.5204015]
+    },
+    {
+      "name": "Rambutan",
+      "kind": "restaurant",
+      "note": "Sri Lankan, Borough Market",
+      "url": "https://www.google.com/maps/search/?api=1&query=Rambutan%2C%2010%20Stoney%20Street%2C%20London%20SE1%209AD",
+      "lngLat": [-0.0915485, 51.5055488]
+    },
+    {
+      "name": "Chishuru",
+      "kind": "restaurant",
+      "url": "https://www.google.com/maps/search/?api=1&query=Chishuru%2C%203%20Great%20Titchfield%20Street%2C%20London%20W1W%208AX",
+      "lngLat": [-0.139913, 51.516641]
+    },
+    {
+      "name": "Kricket Shoreditch",
+      "kind": "restaurant",
+      "url": "https://www.google.com/maps/search/?api=1&query=Kricket%20Shoreditch%2C%2035-42%20Charlotte%20Rd%2C%20London%20EC2A%203PB",
+      "lngLat": [-0.0809457, 51.5252491]
+    },
+    {
+      "name": "Fallow",
+      "kind": "restaurant",
+      "url": "https://www.google.com/maps/search/?api=1&query=Fallow%2C%2052%20Haymarket%2C%20London%20SW1Y%204RP",
+      "lngLat": [-0.13278, 51.50917]
+    },
+    {
+      "name": "Shree Krishna Vada Pav (SKVP)",
+      "kind": "restaurant",
+      "note": "Oxford Circus",
+      "url": "https://maps.app.goo.gl/a6YXm9FmSzxKjwQ46",
+      "lngLat": [-0.1392313, 51.5165118]
+    },
+    {
+      "name": "Noodle Inn Covent Garden",
+      "kind": "restaurant",
+      "url": "https://maps.app.goo.gl/Ju15weBPL8x61BfW6",
+      "lngLat": [-0.1230748, 51.5106658]
+    },
+    {
+      "name": "London Review Bookshop",
+      "kind": "landmark",
+      "url": "https://maps.app.goo.gl/wnA98T5NJtYyzYq59",
+      "lngLat": [-0.124256, 51.5185113]
+    },
+    {
+      "name": "Mr Wang Hot Pot Aldgate",
+      "kind": "restaurant",
+      "url": "https://maps.app.goo.gl/TsffKpvrUFzpf3Db8",
+      "lngLat": [-0.073563, 51.5136291]
+    },
+    {
+      "name": "Mehmet Efendi 1953",
+      "kind": "restaurant",
+      "note": "Turkish sweets",
+      "url": "https://maps.app.goo.gl/11vRDFoVHBioQTGQ9",
+      "lngLat": [-0.0694238, 51.5159673]
+    },
+    {
+      "name": "Tower of London",
+      "kind": "landmark",
+      "url": "https://www.google.com/maps/search/?api=1&query=Tower%20of%20London%2C%20London%20EC3N%204AB",
+      "lngLat": [-0.075949, 51.508112]
+    },
+    {
+      "name": "Tate Modern",
+      "kind": "landmark",
+      "url": "https://www.google.com/maps/search/?api=1&query=Tate%20Modern%2C%20Bankside%2C%20London%20SE1%209TG",
+      "lngLat": [-0.099356, 51.507595]
+    }
+  ],
+  "streetLabels": [
+    {
+      "text": "Brick Lane",
+      "coordinates": [
+        [-0.071618, 51.515132],
+        [-0.070575, 51.517322],
+        [-0.071069, 51.518054],
+        [-0.071331, 51.518856],
+        [-0.071867, 51.520784],
+        [-0.071853, 51.521242],
+        [-0.071633, 51.522292],
+        [-0.071619, 51.52316],
+        [-0.071635, 51.524224],
+        [-0.071643, 51.524612]
+      ]
+    }
+  ],
+  "tubeRides": [
+    { "day": "2026-10-22", "line": "Circle", "from": "Cannon Street", "to": "Bayswater" },
+    { "day": "2026-10-22", "line": "District", "from": "Cannon Street", "to": "Aldgate East" },
+    { "day": "2026-10-21", "line": "Jubilee", "from": "London Bridge", "to": "Bond Street" },
+    { "day": "2026-10-21", "line": "Jubilee", "from": "Baker Street", "to": "London Bridge" },
+    { "day": "2026-10-21", "line": "District", "from": "Monument", "to": "Aldgate East" },
+    { "day": "2026-10-19", "line": "Jubilee", "from": "London Bridge", "to": "Bond Street" },
+    { "day": "2026-10-19", "line": "Central", "from": "Holborn", "to": "Bank" },
+    { "day": "2026-10-19", "line": "Northern", "from": "Bank", "to": "London Bridge" },
+    { "day": "2026-10-19", "line": "Northern", "from": "London Bridge", "to": "Old Street" },
+    { "day": "2026-10-20", "line": "Jubilee", "from": "London Bridge", "to": "Green Park" },
+    { "day": "2026-10-20", "line": "Piccadilly", "from": "Green Park", "to": "Piccadilly Circus" },
+    { "day": "2026-10-20", "line": "Northern", "from": "Leicester Square", "to": "Waterloo" },
+    { "day": "2026-10-20", "line": "Jubilee", "from": "Waterloo", "to": "London Bridge" }
+  ],
+  "replacedTubeLegs": ["2026-10-22T18:08", "2026-10-22T20:29", "2026-10-21T11:13", "2026-10-19T15:56", "2026-10-20T19:59", "2026-10-20T17:32", "2026-10-21T14:57"],
+  "walkGaps": ["2026-10-19T11:36", "2026-10-19T18:37", "2026-10-22T11:09", "2026-10-21T18:25", "2026-10-22T14:59"]
+}

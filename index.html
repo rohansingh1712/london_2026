@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>London 2026</title>
+  <!-- There is no favicon file, so point the icon at nothing; otherwise the browser asks the server for
+       /favicon.ico on every visit and gets a "not found". -->
+  <link rel="icon" href="data:,">
+
+  <!-- MapLibre GL JS 6.15.0 styles and code, loaded from unpkg.
+       The "integrity" values are fingerprints that make the browser reject the file if it ever changes.
+       (This version of MapLibre is a JavaScript module, so it is preloaded here and imported below.) -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.css"
+        integrity="sha384-S+OnE5M4U3Qc2nR0RgljGrVs06xqfRg8L7uFk/pOF5+sRuSDG4oKkqKZmFrx7w09" crossorigin="anonymous">
+  <link rel="modulepreload" href="https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.mjs"
+        integrity="sha384-f3IomKpQJ9QgLFg9JJeeIXKzhYFCZFLXDs4FbQLY13Y1uiaEctrT8RHbumCfpsAc" crossorigin="anonymous">
+
+  <!-- Page layout: the map fills the whole screen, with a small title panel floating over its top left corner. -->
+  <style>
+    /* Lato, hosted in the fonts folder (light 300, regular 400 and bold 700). Each weight comes in two files:
+       "latin" covers everyday English text and "latin-ext" the accented letters, so only the ones needed are loaded. */
+    @font-face { font-family: 'Lato'; font-weight: 300; font-style: normal; font-display: swap;
+      src: url(fonts/lato-300-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    @font-face { font-family: 'Lato'; font-weight: 300; font-style: normal; font-display: swap;
+      src: url(fonts/lato-300-latin-ext.woff2) format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+    @font-face { font-family: 'Lato'; font-weight: 400; font-style: normal; font-display: swap;
+      src: url(fonts/lato-400-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    @font-face { font-family: 'Lato'; font-weight: 400; font-style: normal; font-display: swap;
+      src: url(fonts/lato-400-latin-ext.woff2) format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+    @font-face { font-family: 'Lato'; font-weight: 700; font-style: normal; font-display: swap;
+      src: url(fonts/lato-700-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    @font-face { font-family: 'Lato'; font-weight: 700; font-style: normal; font-display: swap;
+      src: url(fonts/lato-700-latin-ext.woff2) format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Lato', sans-serif; color: #222; }
+    /* MapLibre sets its own font on the map (and so on its popups and buttons); use Lato there too. */
+    .maplibregl-map { font-family: 'Lato', sans-serif; }
+    #map { height: 100%; }
+
+    /* The title panel: a white card with a soft shadow, fixed in the top left corner. */
+    #title-panel {
+      position: fixed; top: 16px; left: 16px; z-index: 2;
+      padding: 10px 22px 12px; border-radius: 5px;  /* the same roundness as the highlighted map area's corners */
+      background: #fff;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+      font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: 0.01em;
+    }
+
+    /* The camera icon: a small white circle with a soft shadow.
+       No "position" here: MapLibre positions markers itself, and overriding it shifts every icon. */
+    .photo-icon {
+      width: 30px; height: 30px;
+      padding: 0; border: 0; border-radius: 50%;
+      background: #222;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .photo-icon:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+    /* The icon for a place we saw (a restaurant, for example): a red circle, the same size as the camera. */
+    .place-icon {
+      width: 30px; height: 30px;
+      padding: 0; border: 2px solid #fff; border-radius: 50%; box-sizing: border-box;
+      background: #d93025;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .place-icon:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55); }
+    /* The little number shown when an icon holds more than one photo. */
+    .photo-count {
+      position: absolute; top: -6px; right: -6px;
+      min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+      border-radius: 8px; background: #fff; color: #222; border: 1px solid #222;
+      font: 700 11px/14px 'Lato', sans-serif;
+      text-align: center;
+    }
+
+    /* The photo popup: big thumbnails, up to two across, in a grid that scrolls if there are many.
+       (Three times the size they used to be: 420px photos instead of 140px.) */
+    /* The popup card is dark, like the camera icon. The little pointer on the card needs the same colour,
+       on whichever side of the card it appears. */
+    .photo-popup .maplibregl-popup-content { padding: 8px; background: #222; }
+    .photo-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+    .photo-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+    .photo-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #222; }
+    .photo-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+    .photo-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+    .photo-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #222; }
+    .photo-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #222; }
+    .photo-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #222; }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--columns, 1), 420px);
+      gap: 8px;
+      max-height: min(880px, 72vh);
+      overflow-y: auto;
+    }
+    .photo-grid a { display: block; }
+    .photo-grid img { display: block; width: 100%; height: 420px; object-fit: cover; border-radius: 4px; background: #333; }
+
+    /* The full-page photo viewer: a dark backdrop, the photo in the middle, and previous/next buttons. */
+    .photo-modal {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.9);
+    }
+    .photo-modal[hidden] { display: none; }
+    .photo-modal img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 4px; }
+    .photo-modal-caption {
+      position: absolute; left: 0; right: 0; bottom: 14px;
+      color: #fff; text-align: center; font-size: 15px;
+    }
+    .photo-modal-button {
+      position: absolute; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18); color: #fff; font-size: 26px; line-height: 48px;
+      cursor: pointer;
+    }
+    .photo-modal-button:hover { background: rgba(255, 255, 255, 0.32); }
+    .photo-modal-button[hidden] { display: none; }
+    .photo-modal-prev { left: 20px; top: 50%; margin-top: -24px; }
+    .photo-modal-next { right: 20px; top: 50%; margin-top: -24px; }
+    .photo-modal-close { right: 20px; top: 20px; }
+  </style>
+</head>
+<body>
+  <div id="title-panel">London 2026</div>
+  <div id="map"></div>
+
+  <script type="module">
+    import { Map, NavigationControl, Marker, Popup } from 'https://unpkg.com/maplibre-gl@6.15.0/dist/maplibre-gl.mjs';
+
+    // Settings you may want to change.
+    const NATIVE_BANKSIDE = [-0.0960008, 51.5073347]; // [longitude, latitude]
+    const GROUP_DISTANCE_METRES = 30;  // photos closer together than this share one camera icon
+    const CLOSE_DELAY_MS = 300;        // how long the photo popup lingers after the mouse leaves
+    const FIT_PADDING = 24;            // space (in pixels) around the highlighted area when the map first loads
+    const VISITED_AREA = { west: -0.215, south: 51.482, east: -0.05, north: 51.535 }; // everything outside this is dimmed
+    const DIM_OPACITY = 0.7;           // how dark the area outside is (0 = not dimmed, 1 = black)
+    const CORNER_RADIUS = { lng: 0.0005, lat: 0.00031 };  // how rounded the highlighted area's corners are, in degrees
+                                       // (the latitude figure is smaller so the corners come out round, not oval)
+    const MAIN_ROAD_COLOUR = '#faf3dc';   // main roads: a soft cream instead of bright yellow
+    const MAIN_ROAD_OUTLINE = '#ddd6c6';  // and a light grey-beige outline instead of orange
+
+    // The map itself. The basemap is OpenFreeMap's "Liberty" vector style (OpenStreetMap data, no API key needed).
+    // It opens, every time, fitted to the highlighted (undimmed) area.
+    const map = new Map({
+      container: 'map',
+      bounds: [[VISITED_AREA.west, VISITED_AREA.south], [VISITED_AREA.east, VISITED_AREA.north]],
+      fitBoundsOptions: { padding: FIT_PADDING },
+      style: 'https://tiles.openfreemap.org/styles/liberty'
+    });
+
+    // Zoom in/out buttons and a compass to rotate the map.
+    map.addControl(new NavigationControl(), 'top-right');
+
+    // The area and neighbourhood names (Shoreditch, Southwark, ...) live in the style's "label_other" layer, and the
+    // bigger "city" areas (Westminster, City of London) in "label_city". All of them are kept calm (regular weight,
+    // smallish, soft grey-blue), except the ones we walked through, which are bold, larger and deep green, and win out
+    // over other labels when there isn't room for both. `walkedNames` is the list of neighbourhoods we walked through;
+    // it starts empty and is filled in once the walks are known. "City of London" is always highlighted.
+    const ALWAYS_HIGHLIGHTED = ['City of London'];
+    function styleNeighbourhoodLabels(walkedNames) {
+      const name = ['coalesce', ['get', 'name_en'], ['get', 'name']];
+      const walked = ['in', name, ['literal', [...walkedNames, ...ALWAYS_HIGHLIGHTED]]];
+      for (const layer of ['label_other', 'label_city']) {
+        map.setLayoutProperty(layer, 'text-font', ['case', walked, ['literal', ['Noto Sans Bold']], ['literal', ['Noto Sans Regular']]]);
+        map.setLayoutProperty(layer, 'text-size', ['interpolate', ['linear'], ['zoom'],
+          10, ['case', walked, 12, 9], 13, ['case', walked, 15, 11], 16, ['case', walked, 20, 14]]);
+        map.setLayoutProperty(layer, 'text-letter-spacing', 0.1);
+        map.setLayoutProperty(layer, 'text-transform', 'uppercase');
+        map.setLayoutProperty(layer, 'text-anchor', 'center');  // "label_city" puts its text above a point by default
+        map.setLayoutProperty(layer, 'text-offset', [0, 0]);
+        map.setLayoutProperty(layer, 'text-max-width', 9);
+        map.setLayoutProperty(layer, 'symbol-sort-key', ['case', walked, 0, 1]);  // lower numbers are placed first
+        map.setPaintProperty(layer, 'text-color', ['case', walked, '#14663a', '#7d8896']);
+        map.setPaintProperty(layer, 'text-halo-color', '#ffffff');
+        map.setPaintProperty(layer, 'text-halo-width', ['case', walked, 2.2, 1.2]);
+      }
+    }
+
+    map.on('load', () => {
+      styleNeighbourhoodLabels([]);
+
+      // The big "London" label in the middle of the map isn't needed: the title already says it.
+      map.setLayoutProperty('label_city_capital', 'visibility', 'none');
+
+      // Turn off the 3D buildings (the grey blocks with shadows that appear when zoomed in). The style only draws
+      // flat buildings up to zoom 14 and hands over to the 3D ones after that, so stretch the flat ones to cover every zoom.
+      map.getStyle().layers.filter((layer) => layer.type === 'fill-extrusion').forEach((layer) => map.removeLayer(layer.id));
+      map.setLayerZoomRange('building', 13, 24);
+
+      // Tone down the main roads, which are bright yellow with orange outlines by default,
+      // so the blue routes and tube lines stand out. (Side streets are already white.)
+      for (const kind of ['road', 'bridge', 'tunnel']) {
+        for (const type of ['secondary_tertiary', 'trunk_primary', 'link', 'motorway', 'motorway_link']) {
+          const road = `${kind}_${type}`;
+          if (map.getLayer(road)) map.setPaintProperty(road, 'line-color', MAIN_ROAD_COLOUR);
+          if (map.getLayer(`${road}_casing`)) map.setPaintProperty(`${road}_casing`, 'line-color', MAIN_ROAD_OUTLINE);
+        }
+      }
+    });
+
+    // Dim everything outside the visited area: a dark shape covering the whole world, with the area cut out of it.
+    // The cut-out is a rectangle with rounded corners, drawn as a ring of points going clockwise from the middle of the
+    // west edge (each corner is a quarter circle made of short straight steps).
+    function roundedRectangle({ west, south, east, north }, radius) {
+      const ring = [];
+      const corner = (centreLng, centreLat, fromDegrees) => {
+        for (let step = 0; step <= 8; step++) {
+          const angle = (fromDegrees - 90 * (step / 8)) * Math.PI / 180;
+          ring.push([centreLng + radius.lng * Math.cos(angle), centreLat + radius.lat * Math.sin(angle)]);
+        }
+      };
+      corner(west + radius.lng, north - radius.lat, 180);   // top left, sweeping from the west edge up to the top edge
+      corner(east - radius.lng, north - radius.lat, 90);    // top right
+      corner(east - radius.lng, south + radius.lat, 0);     // bottom right
+      corner(west + radius.lng, south + radius.lat, 270);   // bottom left
+      ring.push(ring[0]);
+      return ring;
+    }
+    const outsideShape = (radius) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
+          roundedRectangle(VISITED_AREA, radius)
+        ]
+      }
+    });
+    map.on('load', () => {
+      map.addSource('outside-area', { type: 'geojson', data: outsideShape(CORNER_RADIUS) });
+      map.addLayer({
+        id: 'outside-area',
+        type: 'fill',
+        source: 'outside-area',
+        paint: { 'fill-color': '#000000', 'fill-opacity': DIM_OPACITY }
+      });
+    });
+
+    // The Native Bankside pin, with a popup showing its name and address.
+    new Marker()
+      .setLngLat(NATIVE_BANKSIDE)
+      .setPopup(new Popup({ offset: 30 }).setHTML(
+        '<strong>Native Bankside</strong><br>Empire Warehouse, 1 Bear Gardens,<br>London SE1 9ED'))
+      .addTo(map);
+
+    // Turn a "taken" time such as "2026-10-18T16:10:04+01:00" into "Sun 18 Oct, 4:10pm".
+    // The time is read exactly as written (UK local time), so it never shifts with the viewer's time zone.
+    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function formatTaken(taken) {
+      const [, y, mo, d, h, mi] = taken.match(/^(\d+)-(\d+)-(\d+)T(\d+):(\d+)/).map(Number);
+      const weekday = DAYS[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()];
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      return `${weekday} ${d} ${MONTHS[mo - 1]}, ${hour12}:${String(mi).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`;
+    }
+
+    // Where a photo and its thumbnail live, and what to call it. Photos from photos.json have a "taken" time.
+    // Photos placed by hand (photos-manual.json) have no reliable time, so they carry a "label" (the place) instead.
+    const photoUrl = (photo) => 'photos/' + encodeURIComponent(photo.file);
+    const thumbUrl = (photo) => 'photos/thumbs/' + encodeURIComponent(photo.file) + '.jpg';
+    const photoLabel = (photo) => photo.label ?? formatTaken(photo.taken);
+
+    // Distance in metres between two photos (straight-line, accurate enough for short distances).
+    function metresApart(a, b) {
+      const toRad = Math.PI / 180;
+      const dLat = (b.lat - a.lat) * toRad;
+      const dLng = (b.lng - a.lng) * toRad * Math.cos(a.lat * toRad);
+      return Math.sqrt(dLat * dLat + dLng * dLng) * 6371000;
+    }
+
+    // Group photos that were taken close together. Going through the photos in time order,
+    // each photo joins the first group whose first photo is within the distance, or starts a new group.
+    function groupPhotos(photos) {
+      const groups = [];
+      for (const photo of photos) {
+        const group = groups.find((g) => metresApart(g.photos[0], photo) <= GROUP_DISTANCE_METRES);
+        if (group) group.photos.push(photo);
+        else groups.push({ photos: [photo] });
+      }
+      // Each group's icon sits at the average position of its photos.
+      for (const g of groups) {
+        g.lat = g.photos.reduce((sum, p) => sum + p.lat, 0) / g.photos.length;
+        g.lng = g.photos.reduce((sum, p) => sum + p.lng, 0) / g.photos.length;
+      }
+      return groups;
+    }
+
+    // A small camera drawing (inline SVG, so no icon files or fonts are needed).
+    const CAMERA_SVG =
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M4 8h3l1.6-2.2h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>' +
+      '<circle cx="12" cy="13.2" r="3.4"/></svg>';
+
+    // Symbols for the kinds of place in trip.json, drawn the same way as the camera (white lines on the red icon).
+    const PLACE_ICONS = {
+      restaurant:
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/>' +
+        '<path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+      landmark:
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="M12 2 20 7H4Z"/></svg>'
+    };
+
+    // All the photos in time order. The full-page viewer steps through these with its previous and next buttons.
+    let allPhotos = [];
+
+    // The full-page photo viewer. Clicking a thumbnail opens it; the arrow buttons (or the left and right arrow keys)
+    // go to the previous or next photo overall, and Esc, the close button or a click on the dark backdrop close it.
+    const modal = document.createElement('div');
+    modal.className = 'photo-modal';
+    modal.hidden = true;
+    modal.innerHTML =
+      '<button type="button" class="photo-modal-button photo-modal-close" aria-label="Close">&times;</button>' +
+      '<button type="button" class="photo-modal-button photo-modal-prev" aria-label="Previous photo">&#8249;</button>' +
+      '<img alt="">' +
+      '<button type="button" class="photo-modal-button photo-modal-next" aria-label="Next photo">&#8250;</button>' +
+      '<div class="photo-modal-caption"></div>';
+    document.body.append(modal);
+    const modalImage = modal.querySelector('img');
+    const modalPrev = modal.querySelector('.photo-modal-prev');
+    const modalNext = modal.querySelector('.photo-modal-next');
+    let modalIndex = 0;
+
+    function showModalPhoto(index) {
+      modalIndex = index;
+      const photo = allPhotos[index];
+      modalImage.src = photoUrl(photo);
+      modalImage.alt = photoLabel(photo);
+      modal.querySelector('.photo-modal-caption').textContent = `${photoLabel(photo)} · ${index + 1} of ${allPhotos.length}`;
+      modalPrev.hidden = index === 0;
+      modalNext.hidden = index === allPhotos.length - 1;
+    }
+    function openModal(photo) {
+      photoPopup.remove(); openGroup = null;
+      modal.hidden = false;
+      showModalPhoto(allPhotos.indexOf(photo));
+    }
+    function closeModal() { modal.hidden = true; modalImage.removeAttribute('src'); }
+    modalPrev.addEventListener('click', (e) => { e.stopPropagation(); if (modalIndex > 0) showModalPhoto(modalIndex - 1); });
+    modalNext.addEventListener('click', (e) => { e.stopPropagation(); if (modalIndex < allPhotos.length - 1) showModalPhoto(modalIndex + 1); });
+    modal.querySelector('.photo-modal-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target !== modalImage) closeModal(); });
+    document.addEventListener('keydown', (e) => {
+      if (modal.hidden) return;
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowLeft' && modalIndex > 0) showModalPhoto(modalIndex - 1);
+      if (e.key === 'ArrowRight' && modalIndex < allPhotos.length - 1) showModalPhoto(modalIndex + 1);
+    });
+
+    // Build the content of the popup: a scrollable grid of big thumbnails. There are no captions here; the date (or
+    // place name) only shows in the full-page viewer.
+    // Only the thumbnails are loaded here; clicking one opens the full-size photo in the viewer above
+    // (the link still opens the photo in a new tab if you middle-click or right-click it).
+    function buildPopupContent(group) {
+      const box = document.createElement('div');
+      box.className = 'photo-grid';
+      box.style.setProperty('--columns', Math.min(group.photos.length, 2));
+      for (const photo of group.photos) {
+        const link = document.createElement('a');
+        link.href = photoUrl(photo);
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.addEventListener('click', (e) => { e.preventDefault(); openModal(photo); });
+        const img = document.createElement('img');
+        img.src = thumbUrl(photo);
+        img.alt = photoLabel(photo);
+        img.loading = 'lazy';
+        link.append(img);
+        box.append(link);
+      }
+      return box;
+    }
+
+    // One shared popup for photos, so only one is open at a time.
+    // It stays open for a moment after the mouse leaves, so you can move from the icon into the popup.
+    const photoPopup = new Popup({ closeButton: false, closeOnClick: false, offset: 22, maxWidth: '1020px', className: 'photo-popup' });
+    let closeTimer = null;
+    let openGroup = null;
+    function cancelClose() { clearTimeout(closeTimer); }
+    function scheduleClose() {
+      cancelClose();
+      closeTimer = setTimeout(() => { photoPopup.remove(); openGroup = null; }, CLOSE_DELAY_MS);
+    }
+    function openPopup(group) {
+      cancelClose();
+      if (openGroup === group) return; // already showing this group
+      openGroup = group;
+      photoPopup.setLngLat([group.lng, group.lat]).setDOMContent(buildPopupContent(group)).addTo(map);
+      const el = photoPopup.getElement();
+      el.onmouseenter = cancelClose;
+      el.onmouseleave = scheduleClose;
+    }
+
+    // Load the photo list and make one camera icon per group.
+    map.on('load', async () => {
+      const response = await fetch('photos.json');
+      const photos = await response.json();
+      photos.sort((a, b) => new Date(a.taken) - new Date(b.taken));
+      // The hand-placed photos have no time to sort by, so they go after the others.
+      const manualResponse = await fetch('photos-manual.json', { cache: 'no-cache' });
+      if (manualResponse.ok) photos.push(...await manualResponse.json());
+      allPhotos = photos;
+      const groups = groupPhotos(photos);
+
+      for (const group of groups) {
+        const icon = document.createElement('button');
+        icon.type = 'button';
+        icon.className = 'photo-icon';
+        icon.setAttribute('aria-label', group.photos.length === 1 ? 'Show photo' : `Show ${group.photos.length} photos`);
+        icon.innerHTML = CAMERA_SVG;
+        if (group.photos.length > 1) {
+          const badge = document.createElement('span');
+          badge.className = 'photo-count';
+          badge.textContent = group.photos.length;
+          icon.append(badge);
+        }
+        // Hovering opens the popup; clicking or tapping does too (for touch screens).
+        icon.addEventListener('mouseenter', () => openPopup(group));
+        icon.addEventListener('mouseleave', scheduleClose);
+        icon.addEventListener('click', () => openPopup(group));
+        new Marker({ element: icon }).setLngLat([group.lng, group.lat]).addTo(map);
+      }
+
+      // Tapping the map (not an icon or the popup) closes the photo popup.
+      map.on('click', (e) => {
+        if (e.originalEvent.target.closest('.photo-icon')) return;
+        photoPopup.remove();
+        openGroup = null;
+      });
+    });
+
+    // ---- Our trip: walks, tube rides, places and street names ----
+    const WALK_GREEN = '#1e8a4a';  // walks: a deeper green
+    const TUBE_LIGHTEN = 0.25;     // how much to lighten the official tube line colours (0 = as is, 1 = white)
+    // Mix a colour such as "#E42313" with white by the given amount.
+    const lighten = (hex, amount) => '#' + [1, 3, 5].map((i) =>
+      Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - amount) + 255 * amount).toString(16).padStart(2, '0')).join('');
+    const TIMEZONE = 'Europe/London';  // every day and time is shown in UK time, like the photo labels
+    const dayKeyFormat = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE });  // gives "2026-10-18"
+    const hourMinuteFormat = new Intl.DateTimeFormat('en-GB', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const dayKey = (date) => dayKeyFormat.format(date);
+    const minuteKey = (ms) => `${dayKey(new Date(ms))}T${hourMinuteFormat.format(new Date(ms))}`;  // "2026-10-19T11:36"
+
+    // The timeline writes places as "geo:51.5,-0.09" (latitude first). The map wants [longitude, latitude].
+    function parseGeo(text) {
+      const [lat, lng] = text.slice(4).split(',').map(Number);
+      return [lng, lat];
+    }
+
+    // Cleaning up the GPS lines, used by buildLegs below.
+    const ANCHOR_MAX_METRES = 150;  // a leg's recorded start/end is only used if it is this close to the GPS trace
+    const WALK_MAX_SPEED = 6;       // metres per second: a faster jump between two points on a walk is a glitch
+    const SPIKE_MIN_METRES = 100;   // and only counts as a spike if the jump is at least this long
+    const lngLatMetres = (a, b) => metresApart({ lat: a[1], lng: a[0] }, { lat: b[1], lng: b[0] });
+
+    // Drop single points that jump away from the walk and would need an impossible speed to reach.
+    // A point is only dropped if the one after it is reachable at a sensible speed, so a real gap in the
+    // GPS (where the walk carries on from somewhere new) is kept.
+    function dropSpikes(points) {
+      const kept = [points[0]];
+      points.slice(1).forEach((point, i) => {
+        const previous = kept[kept.length - 1];
+        const next = points[i + 2];
+        const speed = (a, b) => lngLatMetres(a.lngLat, b.lngLat) / Math.max((b.time - a.time) / 1000, 1);
+        const isSpike = next
+          && lngLatMetres(previous.lngLat, point.lngLat) >= SPIKE_MIN_METRES
+          && speed(previous, point) > WALK_MAX_SPEED
+          && speed(previous, next) <= WALK_MAX_SPEED;
+        if (!isSpike) kept.push(point);
+      });
+      return kept;
+    }
+
+    // Pick out the walks and tube rides. Each journey leg the timeline labels "walking"
+    // or "in subway" becomes one line: its start, the GPS points recorded during it, then its end.
+    // (Car rides, such as the airport transfers, are left out of "Our trip".)
+    const LEG_MODES = { walking: 'walk', 'in subway': 'tube' };
+    function buildLegs(entries, walkGaps) {
+      const gps = [];
+      for (const entry of entries) {
+        if (!entry.timelinePath) continue;
+        const start = new Date(entry.startTime).getTime();
+        for (const point of entry.timelinePath) {
+          gps.push({ time: start + Number(point.durationMinutesOffsetFromStartTime) * 60000, lngLat: parseGeo(point.point) });
+        }
+      }
+      gps.sort((a, b) => a.time - b.time);
+
+      const legs = [];
+      for (const entry of entries) {
+        const mode = entry.activity && LEG_MODES[entry.activity.topCandidate.type];
+        if (!mode) continue;
+        const start = new Date(entry.startTime).getTime();
+        const end = new Date(entry.endTime).getTime();
+        const points = gps.filter((p) => p.time >= start && p.time <= end);
+        if (points.length) {
+          // The timeline's own start and end for a leg are sometimes wrong, by up to a kilometre,
+          // which draws a long straight spike. Only use them when they sit close to the GPS trace.
+          const first = { time: start, lngLat: parseGeo(entry.activity.start) };
+          const last = { time: end, lngLat: parseGeo(entry.activity.end) };
+          if (lngLatMetres(first.lngLat, points[0].lngLat) <= ANCHOR_MAX_METRES) points.unshift(first);
+          if (lngLatMetres(last.lngLat, points[points.length - 1].lngLat) <= ANCHOR_MAX_METRES) points.push(last);
+        } else {
+          // No GPS for this leg: a straight line from its start to its end is all there is.
+          points.push({ time: start, lngLat: parseGeo(entry.activity.start) }, { time: end, lngLat: parseGeo(entry.activity.end) });
+        }
+        // A line is broken (not drawn onwards) after any point listed in "walkGaps" in trip.json, such as where
+        // the GPS dropped out underground on what was really a tube ride, leaving a long straight jump.
+        // (The gaps are applied first, before any glitchy points are dropped, so a point that marks a gap can't be dropped.)
+        const parts = [[]];
+        for (const p of points) {
+          parts[parts.length - 1].push(p);
+          if (walkGaps.includes(minuteKey(p.time))) parts.push([]);
+        }
+        for (const part of parts.filter((p) => p.length >= 2)) {
+          const cleaned = mode === 'walk' ? dropSpikes(part) : part;
+          if (cleaned.length < 2) continue;
+          legs.push({ mode, startTime: entry.startTime, coordinates: cleaned.map((p) => p.lngLat) });
+        }
+      }
+      return legs;
+    }
+
+    // Merge the walks into one line per route. "Our trip" only needs to show that we walked somewhere, not every
+    // time we did. All the walking points are snapped into small squares (about WALK_MERGE_METRES wide); points in
+    // the same square become one spot, and any two spots joined by a walk are joined by a single line, however
+    // many times it was walked. The lines are then chained back together into long smooth paths.
+    const WALK_MERGE_METRES = 75;
+    function mergeWalks(walks) {
+      const dLat = WALK_MERGE_METRES / 111320;
+      const dLng = WALK_MERGE_METRES / (111320 * Math.cos(51.5 * Math.PI / 180));
+      // (globalThis.Map is JavaScript's own Map; plain "Map" on this page is MapLibre's map.)
+      const spots = new globalThis.Map();  // square -> { lng, lat, count, links: Set of neighbouring squares }
+      const spotFor = ([lng, lat]) => {
+        const key = `${Math.floor(lat / dLat)},${Math.floor(lng / dLng)}`;
+        let spot = spots.get(key);
+        if (!spot) spots.set(key, (spot = { key, lng: 0, lat: 0, count: 0, links: new Set() }));
+        spot.lng += lng; spot.lat += lat; spot.count += 1;
+        return spot;
+      };
+      for (const walk of walks) {
+        let previous = null;
+        for (const point of walk.coordinates) {
+          const spot = spotFor(point);
+          if (previous && previous !== spot) { previous.links.add(spot); spot.links.add(previous); }
+          previous = spot;
+        }
+      }
+
+      // Chain the single lines into paths: start at every spot that is an end or a junction, and follow the line
+      // until the next end or junction. (Anything left over is a closed loop.)
+      const usedLinks = new Set();
+      const linkKey = (a, b) => (a.key < b.key ? `${a.key}|${b.key}` : `${b.key}|${a.key}`);
+      const position = (spot) => [spot.lng / spot.count, spot.lat / spot.count];
+      const paths = [];
+      function follow(start, first) {
+        const path = [start, first];
+        usedLinks.add(linkKey(start, first));
+        let current = first;
+        while (current.links.size === 2) {
+          const next = [...current.links].find((spot) => !usedLinks.has(linkKey(current, spot)));
+          if (!next) break;
+          usedLinks.add(linkKey(current, next));
+          path.push(next);
+          current = next;
+        }
+        paths.push(path.map(position));
+      }
+      const all = [...spots.values()];
+      for (const spot of all.filter((s) => s.links.size !== 2)) {
+        for (const neighbour of spot.links) if (!usedLinks.has(linkKey(spot, neighbour))) follow(spot, neighbour);
+      }
+      for (const spot of all) {
+        for (const neighbour of spot.links) if (!usedLinks.has(linkKey(spot, neighbour))) follow(spot, neighbour);
+      }
+      return paths;
+    }
+
+    // Load the timeline and draw everything: walks, tube rides, places and street names.
+    map.on('load', async () => {
+      const response = await fetch('Timeline.json');
+      const entries = await response.json();
+      const lineLayout = { 'line-cap': 'round', 'line-join': 'round' };
+
+      // Our own notes, from trip.json: the places we saw, the tube rides, and so on.
+      // ("no-cache" makes the browser check for a newer copy each time, so edits show up on reload.)
+      const tripResponse = await fetch('trip.json', { cache: 'no-cache' });
+      const trip = tripResponse.ok ? await tripResponse.json() : {};
+      const places = trip.places ?? [];
+      const tubeRides = trip.tubeRides ?? [];
+      const streetLabels = trip.streetLabels ?? [];
+
+      // The track and stations for each tube ride we've marked, cut out of tube.json (from OpenStreetMap).
+      const tubeResponse = await fetch('tube.json', { cache: 'no-cache' });
+      const tubeSegments = tubeResponse.ok ? (await tubeResponse.json()).segments : [];
+      // (The same stretch ridden on two days, such as the Jubilee line to Bond Street, is only drawn once.)
+      const rideSegments = [...new Set(tubeRides
+        .map((ride) => tubeSegments.find((s) => s.line === ride.line && s.from === ride.from && s.to === ride.to))
+        .filter(Boolean))];
+      // The rough grey GPS tube legs that the coloured lines replace, each named by when it started
+      // (see "replacedTubeLegs" in trip.json). Any other tube leg stays as a grey dashed line.
+      const replacedTubeLegs = trip.replacedTubeLegs ?? [];
+
+      // Every walk and tube ride at once, plus the places from trip.json.
+      // Walks are drawn as feet (below), and tube rides as dashed dark grey until each one is given its line colour.
+      const allLegs = buildLegs(entries, trip.walkGaps ?? []);
+      // Walks are merged into one line per route; tube legs are kept as they were.
+      const legs = [
+        ...allLegs.filter((leg) => leg.mode !== 'walk'),
+        ...mergeWalks(allLegs.filter((leg) => leg.mode === 'walk')).map((coordinates) => ({ mode: 'walk', startTime: '', coordinates }))
+      ];
+      map.addSource('trip-legs', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: legs.filter((leg) => leg.mode === 'tube' && !replacedTubeLegs.some((start) => leg.startTime.startsWith(start))).map((leg) => ({
+            type: 'Feature',
+            properties: { mode: leg.mode },
+            geometry: { type: 'LineString', coordinates: leg.coordinates }
+          }))
+        }
+      });
+      // A white outline goes under the grey tube legs.
+      map.addLayer({
+        id: 'trip-casing', type: 'line', source: 'trip-legs',
+        layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 8 }
+      });
+      map.addLayer({
+        id: 'trip-tube', type: 'line', source: 'trip-legs', filter: ['==', ['get', 'mode'], 'tube'],
+        layout: { 'line-join': 'round' }, paint: { 'line-color': '#444444', 'line-width': 4, 'line-dasharray': [2, 1.5] }
+      });
+
+      const walkPaths = legs.filter((leg) => leg.mode === 'walk').map((leg) => leg.coordinates);
+
+      // The walks, drawn as a trail of alternating left and right feet (the two drawings are in the svg folder).
+      // The feet are placed along the merged walking paths a fixed distance apart ON SCREEN, so they are rebuilt as you
+      // zoom. Each one is turned to follow its path, in the direction the path was drawn (the merge means we no longer
+      // know which way each stretch was really walked), and sits a little to its own side of the path.
+      {
+        const FOOT_HEIGHT = 17;      // on screen, in pixels
+        const FOOT_STEP = 1.4;       // distance from one foot to the next, in foot heights
+        const FOOT_SIDEWAYS = 0.1;   // how far each foot sits from the path (left foot left, right foot right), in foot heights
+        const FOOT_SOURCE_HEIGHT = 74;  // the drawings are 28 wide by 74 tall
+
+        // Load each foot drawing, in the walking green, and register it as a map image.
+        const footImage = async (name) => {
+          const svg = (await (await fetch(`svg/${name}.svg`)).text()).replace(/fill="black"/g, `fill="${WALK_GREEN}"`);
+          const image = new Image();
+          image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+          await image.decode();
+          map.addImage(name, image);
+        };
+        await footImage('left foot');
+        await footImage('right foot');
+
+        // Points along every path, `spacing` metres apart, alternating left and right, each moved `sideways` metres
+        // to its own side of the path.
+        function footPrints(spacing, sideways) {
+          const features = [];
+          for (const path of walkPaths) {
+            let left = true;
+            let carried = spacing / 2;  // distance still to go before the next foot
+            for (let i = 0; i < path.length - 1; i++) {
+              const [a, b] = [path[i], path[i + 1]];
+              const cosLat = Math.cos(a[1] * Math.PI / 180);
+              const dx = (b[0] - a[0]) * 111320 * cosLat, dy = (b[1] - a[1]) * 111320;
+              const length = Math.hypot(dx, dy);
+              if (!length) continue;
+              const bearing = Math.atan2(dx, dy) * 180 / Math.PI;
+              for (let at = carried; at <= length; at += spacing) {
+                const t = at / length;
+                // A quarter turn to the left of the way we are heading is bearing - 90, and to the right bearing + 90.
+                const side = (bearing + (left ? -90 : 90)) * Math.PI / 180;
+                features.push({
+                  type: 'Feature',
+                  properties: { foot: left ? 'left foot' : 'right foot', bearing },
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [
+                      a[0] + (b[0] - a[0]) * t + sideways * Math.sin(side) / (111320 * cosLat),
+                      a[1] + (b[1] - a[1]) * t + sideways * Math.cos(side) / 111320
+                    ]
+                  }
+                });
+                left = !left;
+                carried = at + spacing;
+              }
+              carried -= length;
+            }
+          }
+          return { type: 'FeatureCollection', features };
+        }
+
+        map.addSource('feet', { type: 'geojson', data: footPrints(50, 0) });
+        map.addLayer({
+          id: 'trip-feet', type: 'symbol', source: 'feet', layout: {
+            'icon-image': ['get', 'foot'], 'icon-rotate': ['get', 'bearing'], 'icon-rotation-alignment': 'map',
+            'icon-size': FOOT_HEIGHT / FOOT_SOURCE_HEIGHT, 'icon-allow-overlap': true, 'icon-ignore-placement': true
+          }
+        });
+
+        // Rebuild the feet for the current zoom, so they stay the same distance apart on screen.
+        function updateFeet() {
+          const metresPerPixel = 78271.5 * Math.cos(51.5 * Math.PI / 180) / 2 ** map.getZoom();
+          map.getSource('feet').setData(footPrints(
+            FOOT_HEIGHT * FOOT_STEP * metresPerPixel, FOOT_HEIGHT * FOOT_SIDEWAYS * metresPerPixel));
+        }
+        let queued = false;
+        map.on('zoom', () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; updateFeet(); }); } });
+        updateFeet();
+      }
+
+      // Find the neighbourhoods we walked through, so their names can be highlighted. The map's own place labels are
+      // single points, not outlines, so each walking point is given to its nearest neighbourhood label, and a
+      // neighbourhood counts as walked through if enough points land in it (and not too far from its label).
+      {
+        const NOT_NEIGHBOURHOODS = ['city', 'continent', 'country', 'state', 'town', 'village'];
+        const WALKED_MIN_POINTS = 3;    // walking points a neighbourhood needs before it counts
+        const WALKED_MAX_METRES = 900;  // a point further than this from every label belongs to none of them
+        const places = new globalThis.Map();  // name -> [lng, lat]
+        for (const feature of map.querySourceFeatures('openmaptiles', { sourceLayer: 'place' })) {
+          const { class: kind, name_en: english, name: local } = feature.properties;
+          const placeName = english ?? local;
+          if (feature.geometry.type !== 'Point' || NOT_NEIGHBOURHOODS.includes(kind) || !placeName) continue;
+          places.set(placeName, feature.geometry.coordinates);
+        }
+        const counts = new globalThis.Map();
+        for (const point of walkPaths.flat()) {
+          let nearest = null, nearestMetres = Infinity;
+          for (const [placeName, coordinates] of places) {
+            const metres = lngLatMetres(point, coordinates);
+            if (metres < nearestMetres) { nearest = placeName; nearestMetres = metres; }
+          }
+          if (nearest && nearestMetres <= WALKED_MAX_METRES) counts.set(nearest, (counts.get(nearest) ?? 0) + 1);
+        }
+        const walkedNames = [...counts].filter(([, count]) => count >= WALKED_MIN_POINTS).map(([placeName]) => placeName);
+        styleNeighbourhoodLabels(walkedNames);
+      }
+
+      // Marked tube rides: the line in its own colour, with a dot and name for every station along the way.
+      // A station served by more than one marked line (such as Cannon Street) gets a dark ring instead.
+      const stationsByName = {};
+      for (const segment of rideSegments) {
+        for (const station of segment.stations) {
+          const seen = stationsByName[station.name];
+          if (!seen) stationsByName[station.name] = { name: station.name, lngLat: station.lngLat, lines: new Set([segment.line]), colour: lighten(segment.colour, TUBE_LIGHTEN) };
+          else if (!seen.lines.has(segment.line)) { seen.lines.add(segment.line); seen.colour = '#222222'; }
+        }
+      }
+      map.addSource('tube-lines', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: rideSegments.map((s) => ({
+            type: 'Feature',
+            properties: { colour: lighten(s.colour, TUBE_LIGHTEN), line: s.line },
+            geometry: { type: 'LineString', coordinates: s.coordinates }
+          }))
+        }
+      });
+      map.addSource('tube-stations', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: Object.values(stationsByName).map((s) => ({
+            type: 'Feature',
+            properties: { name: s.name, colour: s.colour },
+            geometry: { type: 'Point', coordinates: s.lngLat }
+          }))
+        }
+      });
+      map.addLayer({ id: 'tube-casing', type: 'line', source: 'tube-lines', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 10 } });
+      map.addLayer({ id: 'tube-line', type: 'line', source: 'tube-lines', layout: lineLayout, paint: { 'line-color': ['get', 'colour'], 'line-width': 6 } });
+      // An invisible, wider copy of the tube lines, so they are easy to hover over.
+      map.addLayer({ id: 'tube-line-hover', type: 'line', source: 'tube-lines', layout: lineLayout, paint: { 'line-color': '#000000', 'line-opacity': 0, 'line-width': 18 } });
+      map.addLayer({
+        id: 'tube-stations', type: 'circle', source: 'tube-stations',
+        paint: { 'circle-radius': 5, 'circle-color': '#ffffff', 'circle-stroke-color': ['get', 'colour'], 'circle-stroke-width': 3 }
+      });
+      // Station names show once you're zoomed in far enough (zoom 13); before that, hover a dot to see its name.
+      map.addLayer({
+        id: 'tube-station-names', type: 'symbol', source: 'tube-stations', minzoom: 13,
+        layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-anchor': 'left', 'text-offset': [0.9, 0] },
+        paint: { 'text-color': '#222222', 'text-halo-color': '#ffffff', 'text-halo-width': 2 }
+      });
+      // A street's name written along the walk we took down it (see "streetLabels" in trip.json), in the walk's green.
+      map.addSource('street-labels', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: streetLabels.map((label) => ({
+            type: 'Feature',
+            properties: { text: label.text },
+            geometry: { type: 'LineString', coordinates: label.coordinates }
+          }))
+        }
+      });
+      // Text along a line is only drawn when the whole name fits along it on screen, so it disappears when zoomed out.
+      // Below STREET_LABEL_ALONG_ZOOM a plain horizontal label beside the middle of the street takes over instead.
+      // Both ignore other labels, so they are never hidden for being in the way.
+      const STREET_LABEL_ALONG_ZOOM = 13.5;
+      const streetLabelStyle = {
+        'text-field': ['get', 'text'], 'text-font': ['Noto Sans Bold'], 'text-transform': 'uppercase',
+        'text-allow-overlap': true, 'text-ignore-placement': true
+      };
+      const streetLabelPaint = { 'text-color': '#2f8f4e', 'text-halo-color': '#ffffff', 'text-halo-width': 2.5 };
+      map.addLayer({
+        id: 'street-label', type: 'symbol', source: 'street-labels', minzoom: STREET_LABEL_ALONG_ZOOM,
+        layout: {
+          ...streetLabelStyle,
+          'symbol-placement': 'line', 'symbol-spacing': 600, 'text-max-angle': 120,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 13, 14, 16, 26],
+          'text-letter-spacing': 0.25,
+          'text-offset': [0, -1.1]  // sits just beside the dotted line, not on top of it
+        },
+        paint: streetLabelPaint
+      });
+      map.addSource('street-label-points', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: streetLabels.map((label) => ({
+            type: 'Feature',
+            properties: { text: label.text },
+            geometry: { type: 'Point', coordinates: label.coordinates[Math.floor(label.coordinates.length / 2)] }
+          }))
+        }
+      });
+      map.addLayer({
+        id: 'street-label-point', type: 'symbol', source: 'street-label-points', minzoom: 10.5, maxzoom: STREET_LABEL_ALONG_ZOOM,
+        layout: {
+          ...streetLabelStyle,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 10.5, 11, 13.5, 16],
+          'text-letter-spacing': 0.15,
+          'text-anchor': 'left', 'text-offset': [2.4, 0]  // to the right of the street, clear of its photo icons
+        },
+        paint: streetLabelPaint
+      });
+      const stationPopup = new Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+      map.on('mousemove', 'tube-stations', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        if (map.getZoom() < 13) stationPopup.setLngLat(e.features[0].geometry.coordinates).setText(e.features[0].properties.name).addTo(map);
+      });
+      map.on('mouseleave', 'tube-stations', () => {
+        map.getCanvas().style.cursor = '';
+        stationPopup.remove();
+      });
+
+      // Hovering a tube line shows its name, such as "Jubilee line". Where lines share track (the Northern and
+      // Jubilee near London Bridge, say) it names all of them. A station's own name takes priority over this.
+      const linePopup = new Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+      map.on('mousemove', 'tube-line-hover', (e) => {
+        if (map.queryRenderedFeatures(e.point, { layers: ['tube-stations'] }).length) { linePopup.remove(); return; }
+        map.getCanvas().style.cursor = 'pointer';
+        const names = [...new Set(e.features.map((f) => f.properties.line))];
+        linePopup.setLngLat(e.lngLat).setText(names.length === 1 ? `${names[0]} line` : `${names.join(' and ')} lines`).addTo(map);
+      });
+      map.on('mouseleave', 'tube-line-hover', () => {
+        map.getCanvas().style.cursor = '';
+        linePopup.remove();
+      });
+
+      // Places we saw: a red round icon for each, with a symbol for its kind (a knife and fork for a restaurant).
+      // Hovering one shows its name, linked to Google Maps if it has a link, plus its note if it has one.
+      const placePopup = new Popup({ closeButton: false, closeOnClick: false, offset: 22 });
+      let placeCloseTimer = null;
+      const cancelPlaceClose = () => clearTimeout(placeCloseTimer);
+      const schedulePlaceClose = () => {
+        cancelPlaceClose();
+        placeCloseTimer = setTimeout(() => placePopup.remove(), CLOSE_DELAY_MS);
+      };
+      function openPlacePopup(place) {
+        cancelPlaceClose();
+        const text = document.createElement('div');
+        const name = document.createElement(place.url ? 'a' : 'strong');
+        name.textContent = place.name;
+        if (place.url) { name.href = place.url; name.target = '_blank'; name.rel = 'noopener'; }
+        text.append(name);
+        if (place.note) text.append(document.createElement('br'), place.note);
+        placePopup.setLngLat(place.lngLat).setDOMContent(text).addTo(map);
+        const el = placePopup.getElement();
+        el.onmouseenter = cancelPlaceClose;
+        el.onmouseleave = schedulePlaceClose;
+      }
+      for (const place of places) {
+        const icon = document.createElement('button');
+        icon.type = 'button';
+        icon.className = 'place-icon';
+        icon.setAttribute('aria-label', place.name);
+        icon.innerHTML = PLACE_ICONS[place.kind] ?? '';
+        icon.addEventListener('mouseenter', () => openPlacePopup(place));
+        icon.addEventListener('mouseleave', schedulePlaceClose);
+        icon.addEventListener('click', () => openPlacePopup(place));  // for touch screens
+        new Marker({ element: icon }).setLngLat(place.lngLat).addTo(map);
+      }
+    });
+  </script>
+</body>
+</html>
