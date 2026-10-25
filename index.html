@@ -45,14 +45,58 @@
     .maplibregl-map { font-family: 'Lato', sans-serif; }
     #map { height: 100%; }
 
-    /* The title panel: a white card with a soft shadow, fixed in the top left corner. */
-    #title-panel {
+    /* The sidebar: the title card, fixed in the top left corner, with a gallery panel that opens below it. */
+    #sidebar {
       position: fixed; top: 16px; left: 16px; z-index: 2;
-      padding: 10px 22px 12px; border-radius: 5px;  /* the same roundness as the highlighted map area's corners */
-      background: #fff;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    #sidebar { transition: width 120ms ease-out; }  /* the script sets the width: it grows when you hover or open the panel */
+    #sidebar.open { height: calc(100vh - 32px); }
+    /* The title panel: a dark card with white text and a soft shadow. The chevron on its right shows on hover. */
+    #title-panel {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 10px 14px 12px 22px; border-radius: 5px;  /* the same roundness as the highlighted map area's corners */
+      overflow: hidden;  /* hides the chevron while the card is only as wide as the title */
+      background: #222; color: #fff;
       box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
       font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: 0.01em;
     }
+    #title-panel span { flex: none; white-space: nowrap; }
+    #gallery-toggle {
+      flex: none;
+      width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18); color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 120ms ease-out;
+    }
+    #title-panel.expanded #gallery-toggle { opacity: 1; }
+    #gallery-toggle:hover { background: rgba(255, 255, 255, 0.32); }
+    #gallery-toggle svg { transition: transform 120ms ease-out; }
+    #sidebar.open #gallery-toggle svg { transform: rotate(180deg); }
+    /* The gallery panel: the photos two across, then the places. It scrolls if there is more than fits. */
+    #gallery-panel {
+      display: none; flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; padding: 12px;
+      border-radius: 5px; background: #222; color: #fff;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+      scrollbar-color: #666 #222;
+    }
+    #sidebar.open #gallery-panel { display: block; }
+    #gallery-panel h3 { margin: 18px 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #bbb; }
+    #gallery-panel h3:first-child { margin-top: 0; }
+    .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .gallery-photo { display: block; padding: 0; border: 0; border-radius: 4px; background: #333; cursor: pointer; overflow: hidden; }
+    .gallery-photo img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: contain; }
+    .gallery-photo:hover { opacity: 0.85; }
+    .gallery-place {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 5px 6px; border: 0; border-radius: 4px;
+      background: none; color: #fff; font: inherit; font-size: 15px; text-align: left; cursor: pointer;
+    }
+    .gallery-place:hover { background: rgba(255, 255, 255, 0.12); }
+    .gallery-pin {
+      flex: none; width: 24px; height: 24px; border: 2px solid #fff; border-radius: 50%; box-sizing: border-box;
+      background: #d93025; display: flex; align-items: center; justify-content: center;
+    }
+    .gallery-pin svg { width: 13px; height: 13px; }
 
     /* The camera icon: a small white circle with a soft shadow.
        No "position" here: MapLibre positions markers itself, and overriding it shifts every icon. */
@@ -88,7 +132,7 @@
        (Three times the size they used to be: 420px photos instead of 140px.) */
     /* The popup card is dark, like the camera icon. The little pointer on the card needs the same colour,
        on whichever side of the card it appears. */
-    .photo-popup .maplibregl-popup-content { padding: 8px; background: #222; }
+    .photo-popup .maplibregl-popup-content { padding: 3px; background: #222; }
     .photo-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
     .photo-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
     .photo-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #222; }
@@ -97,15 +141,18 @@
     .photo-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #222; }
     .photo-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #222; }
     .photo-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #222; }
+    /* Each photo gets a portrait (3 wide by 4 tall) cell, since most of the photos are upright. The cell is 560px tall,
+       or shorter on a short window so that a single row still fits without scrolling. */
     .photo-grid {
+      --cell-height: min(560px, 62vh);
       display: grid;
-      grid-template-columns: repeat(var(--columns, 1), 420px);
-      gap: 8px;
+      grid-template-columns: repeat(var(--columns, 1), calc(var(--cell-height) * 3 / 4));
+      gap: 3px;
       max-height: min(880px, 72vh);
       overflow-y: auto;
     }
     .photo-grid a { display: block; }
-    .photo-grid img { display: block; width: 100%; height: 420px; object-fit: cover; border-radius: 4px; background: #333; }
+    .photo-grid img { display: block; width: 100%; height: var(--cell-height); object-fit: contain; border-radius: 4px; background: #333; }
 
     /* The full-page photo viewer: a dark backdrop, the photo in the middle, and previous/next buttons. */
     .photo-modal {
@@ -132,7 +179,16 @@
   </style>
 </head>
 <body>
-  <div id="title-panel">London 2026</div>
+  <div id="sidebar">
+    <div id="title-panel">
+      <span>London 2026</span>
+      <button type="button" id="gallery-toggle" aria-expanded="false" aria-controls="gallery-panel" aria-label="Show photos and places">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div id="gallery-panel"></div>
+  </div>
   <div id="map"></div>
 
   <script type="module">
@@ -141,10 +197,11 @@
     // Settings you may want to change.
     const NATIVE_BANKSIDE = [-0.0960008, 51.5073347]; // [longitude, latitude]
     const GROUP_DISTANCE_METRES = 30;  // photos closer together than this share one camera icon
-    const CLOSE_DELAY_MS = 300;        // how long the photo popup lingers after the mouse leaves
+    const PIN_OVERLAP_METRES = 30;     // a camera icon this close to a place icon is moved aside so they don't sit on top of each other
+    const PIN_NUDGE = [-18, -18];      // ...by this many pixels (right, down), so up and to the left
+    const SAFE_ZONE_MARGIN = 8;        // pixels of slack around a popup or icon when working out the mouse's likely path
     const FIT_PADDING = 24;            // space (in pixels) around the highlighted area when the map first loads
-    const VISITED_AREA = { west: -0.215, south: 51.482, east: -0.05, north: 51.535 }; // everything outside this is dimmed
-    const DIM_OPACITY = 0.7;           // how dark the area outside is (0 = not dimmed, 1 = black)
+    const VISITED_AREA = { west: -0.2313, south: 51.471, east: -0.0337, north: 51.546 }; // everything outside this is dimmed
     const CORNER_RADIUS = { lng: 0.0005, lat: 0.00031 };  // how rounded the highlighted area's corners are, in degrees
                                        // (the latitude figure is smaller so the corners come out round, not oval)
     const MAIN_ROAD_COLOUR = '#faf3dc';   // main roads: a soft cream instead of bright yellow
@@ -227,32 +284,130 @@
       ring.push(ring[0]);
       return ring;
     }
-    const outsideShape = (radius) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
-          roundedRectangle(VISITED_AREA, radius)
-        ]
+    // The edge is a soft fade, not a line. It is built from many dark shapes stacked on top of each other, each one
+    // covering everything outside a slightly bigger version of the visited area. Together they darken the map gradually,
+    // from clear to the full dimming, across a band centred on the area's edge (half the band inside the edge, half outside).
+    const METRES_PER_LAT_DEGREE = 111000;
+    const METRES_PER_LNG_DEGREE = 69000;  // at London's latitude
+    const FADE_METRES = 1670;             // how wide the fade at the edge is, centred on the edge (half inside, half outside)
+    const WISP_METRES = 60;               // how far the edge wanders in and out, like mist
+    const WISP_SEED = 992;                // changes the pattern of the wisps
+    const FADE_STEPS = 48;                // more steps make a smoother fade
+    const FADE_MAX_OPACITY = 0.7;         // how dark it gets far outside (0 = not dimmed, 1 = black)
+    const smoothstep = (t) => t * t * (3 - 2 * t);
+    // To make the fade wispy rather than smooth, every shape's outline is pushed in and out by smooth random noise, so
+    // the edge curls like mist or smoke. That needs many points along each outline (not just the corners).
+    const OUTLINE_SPACING_METRES = 40;    // distance between points along an outline
+    const WISP_SIZE_METRES = 700;         // roughly how big the biggest wisps are, along the edge
+    const hashNoise = (ix, iy, seed) => {
+      let h = Math.imul(ix, 374761393) + Math.imul(iy, 668265263) + Math.imul(seed, 1442695041);
+      h = Math.imul(h ^ (h >>> 13), 1274126177);
+      return ((h ^ (h >>> 16)) >>> 0) / 4294967295 * 2 - 1;  // between -1 and 1
+    };
+    function valueNoise(x, y, seed) {
+      const ix = Math.floor(x), iy = Math.floor(y);
+      const fx = x - ix, fy = y - iy;
+      const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+      const a = hashNoise(ix, iy, seed), b = hashNoise(ix + 1, iy, seed);
+      const c = hashNoise(ix, iy + 1, seed), d = hashNoise(ix + 1, iy + 1, seed);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    }
+    // Three layers of noise at different sizes (big wisps, medium, fine), between about -1 and 1.
+    function wispNoise(x, y, seed) {
+      let sum = 0, weight = 1, total = 0;
+      for (let octave = 0; octave < 3; octave++) {
+        sum += weight * valueNoise(x * 2 ** octave, y * 2 ** octave, seed + octave);
+        total += weight;
+        weight /= 2;
       }
-    });
+      return sum / total;
+    }
+    // The same rounded rectangle as roundedRectangle above, but with a point every few metres and the direction that
+    // points straight out of the shape at each one, going the same way round.
+    function outlinePoints(area, radius, spacing) {
+      const { west, south, east, north } = area;
+      const points = [];
+      const arc = (centreLng, centreLat, fromDegrees) => {
+        const steps = Math.max(4, Math.ceil((Math.PI / 2) * radius.lat * METRES_PER_LAT_DEGREE / spacing));
+        for (let step = 0; step <= steps; step++) {
+          const angle = (fromDegrees - 90 * (step / steps)) * Math.PI / 180;
+          points.push({
+            lng: centreLng + radius.lng * Math.cos(angle), lat: centreLat + radius.lat * Math.sin(angle),
+            outLng: Math.cos(angle), outLat: Math.sin(angle)
+          });
+        }
+      };
+      const edge = (fromLng, fromLat, toLng, toLat, outLng, outLat) => {  // the points between two corners
+        const length = Math.hypot((toLng - fromLng) * METRES_PER_LNG_DEGREE, (toLat - fromLat) * METRES_PER_LAT_DEGREE);
+        const steps = Math.floor(length / spacing);
+        for (let step = 1; step < steps; step++) {
+          points.push({
+            lng: fromLng + (toLng - fromLng) * step / steps, lat: fromLat + (toLat - fromLat) * step / steps, outLng, outLat
+          });
+        }
+      };
+      arc(west + radius.lng, north - radius.lat, 180);
+      edge(west + radius.lng, north, east - radius.lng, north, 0, 1);
+      arc(east - radius.lng, north - radius.lat, 90);
+      edge(east, north - radius.lat, east, south + radius.lat, 1, 0);
+      arc(east - radius.lng, south + radius.lat, 0);
+      edge(east - radius.lng, south, west + radius.lng, south, 0, -1);
+      arc(west + radius.lng, south + radius.lat, 270);
+      edge(west, south + radius.lat, west, north - radius.lat, -1, 0);
+      return points;
+    }
+    function fadeShapes(fadeMetres = FADE_METRES, wispMetres = WISP_METRES, seed = WISP_SEED) {
+      const features = [];
+      let previous = 0;  // how dark the map already is from the shapes below this one
+      for (let step = 1; step <= FADE_STEPS; step++) {
+        const offset = (step / FADE_STEPS - 0.5) * fadeMetres;  // metres outward from the edge (negative = inside)
+        const wanted = FADE_MAX_OPACITY * smoothstep(step / FADE_STEPS);  // total darkness wanted just beyond this shape
+        const opacity = 1 - (1 - wanted) / (1 - previous);  // what this shape adds on top of the ones below
+        previous = wanted;
+        const dLng = offset / METRES_PER_LNG_DEGREE;
+        const dLat = offset / METRES_PER_LAT_DEGREE;
+        const area = {
+          west: VISITED_AREA.west - dLng, east: VISITED_AREA.east + dLng,
+          south: VISITED_AREA.south - dLat, north: VISITED_AREA.north + dLat
+        };
+        const radius = { lng: Math.max(CORNER_RADIUS.lng + dLng, 1e-7), lat: Math.max(CORNER_RADIUS.lat + dLat, 1e-7) };
+        const ring = outlinePoints(area, radius, OUTLINE_SPACING_METRES).map((point) => {
+          // Push the point in or out by the noise at its position, so each shape's edge wanders a little differently.
+          const x = point.lng * METRES_PER_LNG_DEGREE / WISP_SIZE_METRES;
+          const y = point.lat * METRES_PER_LAT_DEGREE / WISP_SIZE_METRES;
+          const push = wispMetres * wispNoise(x, y, seed);
+          return [point.lng + point.outLng * push / METRES_PER_LNG_DEGREE, point.lat + point.outLat * push / METRES_PER_LAT_DEGREE];
+        });
+        ring.push(ring[0]);
+        features.push({
+          type: 'Feature',
+          properties: { opacity },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]], ring]
+          }
+        });
+      }
+      return { type: 'FeatureCollection', features };
+    }
     map.on('load', () => {
-      map.addSource('outside-area', { type: 'geojson', data: outsideShape(CORNER_RADIUS) });
+      map.addSource('outside-area', { type: 'geojson', data: fadeShapes() });
       map.addLayer({
         id: 'outside-area',
         type: 'fill',
         source: 'outside-area',
-        paint: { 'fill-color': '#000000', 'fill-opacity': DIM_OPACITY }
+        paint: { 'fill-color': '#000000', 'fill-opacity': ['get', 'opacity'], 'fill-antialias': false }
       });
     });
 
-    // The Native Bankside pin, with a popup showing its name and address.
-    new Marker()
-      .setLngLat(NATIVE_BANKSIDE)
-      .setPopup(new Popup({ offset: 30 }).setHTML(
-        '<strong>Native Bankside</strong><br>Empire Warehouse, 1 Bear Gardens,<br>London SE1 9ED'))
-      .addTo(map);
+    // Native Bankside, where we stayed. It gets a red place icon with a home symbol, like the restaurants and landmarks
+    // (it is drawn with them further down), but it is not in trip.json or the gallery panel's lists.
+    const HOTEL = {
+      name: 'Native Bankside hotel',
+      kind: 'home',
+      note: 'Empire Warehouse, 1 Bear Gardens, London SE1 9ED',
+      lngLat: NATIVE_BANKSIDE
+    };
 
     // Turn a "taken" time such as "2026-10-18T16:10:04+01:00" into "Sun 18 Oct, 4:10pm".
     // The time is read exactly as written (UK local time), so it never shifts with the viewer's time zone.
@@ -313,7 +468,11 @@
       landmark:
         '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" ' +
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-        '<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="M12 2 20 7H4Z"/></svg>'
+        '<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="M12 2 20 7H4Z"/></svg>',
+      home:
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M3 11 12 3l9 8"/><path d="M5 10v11h14V10"/><path d="M10 21v-6h4v6"/></svg>'
     };
 
     // All the photos in time order. The full-page viewer steps through these with its previous and next buttons.
@@ -366,6 +525,10 @@
     // place name) only shows in the full-page viewer.
     // Only the thumbnails are loaded here; clicking one opens the full-size photo in the viewer above
     // (the link still opens the photo in a new tab if you middle-click or right-click it).
+    // Build the content of the popup: a scrollable grid of big thumbnails. There are no captions here; the date (or
+    // place name) only shows in the full-page viewer.
+    // Only the thumbnails are loaded here; clicking one opens the full-size photo in the viewer above
+    // (the link still opens the photo in a new tab if you middle-click or right-click it).
     function buildPopupContent(group) {
       const box = document.createElement('div');
       box.className = 'photo-grid';
@@ -386,29 +549,190 @@
       return box;
     }
 
+    // A popup closes the moment the mouse leaves it and its icon, with no waiting, except when the mouse is heading
+    // from one to the other. The "safe zone" is the shape that covers the mouse's likely path: everything between the
+    // point where the mouse left and the other thing's outline (the red area, if you picture it). While the mouse stays
+    // inside that zone the popup stays open; the moment it strays outside, the popup closes.
+    function convexHull(points) {
+      const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const build = (list) => {
+        const hull = [];
+        for (const point of list) {
+          while (hull.length >= 2 && cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0) hull.pop();
+          hull.push(point);
+        }
+        hull.pop();
+        return hull;
+      };
+      return build(sorted).concat(build([...sorted].reverse()));
+    }
+    function insidePolygon(polygon, [x, y]) {  // polygon: convex, in order
+      let sign = 0;
+      for (let i = 0; i < polygon.length; i++) {
+        const [ax, ay] = polygon[i];
+        const [bx, by] = polygon[(i + 1) % polygon.length];
+        const side = (bx - ax) * (y - ay) - (by - ay) * (x - ax);
+        if (side !== 0) {
+          if (sign !== 0 && Math.sign(side) !== sign) return false;
+          sign = Math.sign(side);
+        }
+      }
+      return true;
+    }
+    // One watcher per popup. start() is called when the mouse leaves the icon or the popup, with the element it
+    // is probably heading for; cancel() is called when it arrives (or when something else opens).
+    function makeExitWatcher(close) {
+      let onMove = null;
+      const watcher = {
+        cancel() { if (onMove) document.removeEventListener('mousemove', onMove); onMove = null; },
+        start(leaveEvent, targetElement) {
+          watcher.cancel();
+          if (!targetElement) { close(); return; }
+          const m = SAFE_ZONE_MARGIN;
+          const r = targetElement.getBoundingClientRect();
+          const zone = convexHull([
+            [leaveEvent.clientX, leaveEvent.clientY],
+            [r.left - m, r.top - m], [r.right + m, r.top - m], [r.right + m, r.bottom + m], [r.left - m, r.bottom + m]
+          ]);
+          onMove = (e) => {
+            if (insidePolygon(zone, [e.clientX, e.clientY])) return;
+            watcher.cancel();
+            close();
+          };
+          document.addEventListener('mousemove', onMove);
+        }
+      };
+      return watcher;
+    }
+
     // One shared popup for photos, so only one is open at a time.
-    // It stays open for a moment after the mouse leaves, so you can move from the icon into the popup.
     const photoPopup = new Popup({ closeButton: false, closeOnClick: false, offset: 22, maxWidth: '1020px', className: 'photo-popup' });
-    let closeTimer = null;
     let openGroup = null;
-    function cancelClose() { clearTimeout(closeTimer); }
-    function scheduleClose() {
-      cancelClose();
-      closeTimer = setTimeout(() => { photoPopup.remove(); openGroup = null; }, CLOSE_DELAY_MS);
+    const photoWatcher = makeExitWatcher(() => { photoPopup.remove(); openGroup = null; });
+    // The popup's distance from its pin (22 pixels, whichever side it opens on), plus any sideways nudge the pin has.
+    function popupOffset([dx, dy], distance = 22) {
+      const d = distance / Math.SQRT2;
+      const add = ([x, y]) => [x + dx, y + dy];
+      return {
+        center: add([0, 0]), top: add([0, distance]), bottom: add([0, -distance]),
+        left: add([distance, 0]), right: add([-distance, 0]),
+        'top-left': add([d, d]), 'top-right': add([-d, d]), 'bottom-left': add([d, -d]), 'bottom-right': add([-d, -d])
+      };
     }
     function openPopup(group) {
-      cancelClose();
+      photoWatcher.cancel();
       if (openGroup === group) return; // already showing this group
       openGroup = group;
+      photoPopup.setOffset(popupOffset(group.nudge ?? [0, 0]));
       photoPopup.setLngLat([group.lng, group.lat]).setDOMContent(buildPopupContent(group)).addTo(map);
       const el = photoPopup.getElement();
-      el.onmouseenter = cancelClose;
-      el.onmouseleave = scheduleClose;
+      el.onmouseenter = photoWatcher.cancel;
+      el.onmouseleave = (e) => photoWatcher.start(e, group.icon);  // heading back to the icon
+    }
+
+    // ---- The gallery panel below the title: every photo two across, then the restaurants and landmarks ----
+    // Clicking a photo or a place brings its pin into view (if it is off screen) and opens the same popup you get
+    // by hovering that pin. The photo and place code below fills in "gallery" once their files have loaded.
+    const sidebar = document.getElementById('sidebar');
+    const galleryPanel = document.getElementById('gallery-panel');
+    const galleryToggle = document.getElementById('gallery-toggle');
+    const gallery = { photos: [], places: [], showPlace: null, closePlace: null };
+
+    // The title card is only as wide as its text. It grows to show the chevron while you hover it (or when the
+    // keyboard focuses the chevron, or always on a touch screen, which has no hover), and stays wide, matching the
+    // panel, while the panel is open. The script sets the card's width in pixels so the change can animate.
+    const titlePanel = document.getElementById('title-panel');
+    const TITLE_PADDING = { left: 22, right: 14 };  // keep in step with #title-panel in the CSS
+    const TITLE_CHEVRON = { gap: 16, width: 32 };
+    const PANEL_WIDTH = 360;
+    const noHover = matchMedia('(hover: none)').matches;
+    let titleTextWidth = 0;
+    let titleHovered = false;
+    function sizeSidebar() {
+      const open = sidebar.classList.contains('open');
+      const expanded = open || titleHovered || noHover;
+      titlePanel.classList.toggle('expanded', expanded);
+      if (!titleTextWidth) return;  // not measured yet (the font is still loading)
+      sidebar.style.width = `${open ? PANEL_WIDTH
+        : titleTextWidth + TITLE_PADDING.left + (expanded
+          ? TITLE_CHEVRON.gap + TITLE_CHEVRON.width + TITLE_PADDING.right : TITLE_PADDING.left)}px`;
+    }
+    document.fonts.ready.then(() => { titleTextWidth = titlePanel.querySelector('span').offsetWidth; sizeSidebar(); });
+    titlePanel.addEventListener('mouseenter', () => { titleHovered = true; sizeSidebar(); });
+    titlePanel.addEventListener('mouseleave', () => { titleHovered = false; sizeSidebar(); });
+    galleryToggle.addEventListener('focus', () => { titleHovered = true; sizeSidebar(); });
+    galleryToggle.addEventListener('blur', () => { titleHovered = false; sizeSidebar(); });
+
+    galleryToggle.addEventListener('click', () => {
+      galleryToggle.setAttribute('aria-expanded', sidebar.classList.toggle('open'));
+      sizeSidebar();
+    });
+
+    function panToIfHidden(lngLat) {
+      if (!map.getBounds().contains(lngLat)) map.easeTo({ center: lngLat });
+    }
+    function showPhotoPin(photo) {
+      gallery.closePlace?.();
+      panToIfHidden([photo.group.lng, photo.group.lat]);
+      openPopup(photo.group);
+    }
+
+    function renderGallery() {
+      galleryPanel.replaceChildren();
+      const heading = (text) => { const h = document.createElement('h3'); h.textContent = text; return h; };
+      if (gallery.photos.length) {
+        const grid = document.createElement('div');
+        grid.className = 'gallery-grid';
+        for (const photo of gallery.photos) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'gallery-photo';
+          button.title = photoLabel(photo);
+          button.addEventListener('click', () => showPhotoPin(photo));
+          const img = document.createElement('img');
+          img.src = thumbUrl(photo);
+          img.alt = photoLabel(photo);
+          img.loading = 'lazy';
+          button.append(img);
+          grid.append(button);
+        }
+        galleryPanel.append(heading('Photos'), grid);
+      }
+      for (const [kind, title] of [['restaurant', 'Restaurants'], ['landmark', 'Landmarks']]) {
+        const kindPlaces = gallery.places.filter((p) => p.kind === kind);
+        if (!kindPlaces.length) continue;
+        galleryPanel.append(heading(title));
+        for (const place of kindPlaces) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'gallery-place';
+          button.addEventListener('click', () => gallery.showPlace?.(place));
+          const pin = document.createElement('span');
+          pin.className = 'gallery-pin';
+          pin.innerHTML = PLACE_ICONS[kind];
+          button.append(pin, place.name);
+          galleryPanel.append(button);
+        }
+      }
+    }
+
+    // Camera icons that sit (almost) on a place icon are moved aside by PIN_NUDGE. This needs both the photos and the
+    // places, which load separately, so each calls separatePins() once it has its half.
+    const pins = { groups: null, places: null };
+    function separatePins() {
+      if (!pins.groups || !pins.places) return;
+      for (const group of pins.groups) {
+        const overlapsPlace = pins.places.some((place) =>
+          metresApart(group, { lat: place.lngLat[1], lng: place.lngLat[0] }) <= PIN_OVERLAP_METRES);
+        group.nudge = overlapsPlace ? PIN_NUDGE : [0, 0];
+        group.marker.setOffset(group.nudge);
+      }
     }
 
     // Load the photo list and make one camera icon per group.
     map.on('load', async () => {
-      const response = await fetch('photos.json');
+      const response = await fetch('photos.json', { cache: 'no-cache' });
       const photos = await response.json();
       photos.sort((a, b) => new Date(a.taken) - new Date(b.taken));
       // The hand-placed photos have no time to sort by, so they go after the others.
@@ -416,6 +740,9 @@
       if (manualResponse.ok) photos.push(...await manualResponse.json());
       allPhotos = photos;
       const groups = groupPhotos(photos);
+      for (const group of groups) for (const photo of group.photos) photo.group = group;
+      gallery.photos = photos;
+      renderGallery();
 
       for (const group of groups) {
         const icon = document.createElement('button');
@@ -431,10 +758,13 @@
         }
         // Hovering opens the popup; clicking or tapping does too (for touch screens).
         icon.addEventListener('mouseenter', () => openPopup(group));
-        icon.addEventListener('mouseleave', scheduleClose);
+        icon.addEventListener('mouseleave', (e) => { if (openGroup === group) photoWatcher.start(e, photoPopup.getElement()); });
         icon.addEventListener('click', () => openPopup(group));
-        new Marker({ element: icon }).setLngLat([group.lng, group.lat]).addTo(map);
+        group.icon = icon;
+        group.marker = new Marker({ element: icon }).setLngLat([group.lng, group.lat]).addTo(map);
       }
+      pins.groups = groups;
+      separatePins();
 
       // Tapping the map (not an icon or the popup) closes the photo popup.
       map.on('click', (e) => {
@@ -878,14 +1208,11 @@
       // Places we saw: a red round icon for each, with a symbol for its kind (a knife and fork for a restaurant).
       // Hovering one shows its name, linked to Google Maps if it has a link, plus its note if it has one.
       const placePopup = new Popup({ closeButton: false, closeOnClick: false, offset: 22 });
-      let placeCloseTimer = null;
-      const cancelPlaceClose = () => clearTimeout(placeCloseTimer);
-      const schedulePlaceClose = () => {
-        cancelPlaceClose();
-        placeCloseTimer = setTimeout(() => placePopup.remove(), CLOSE_DELAY_MS);
-      };
+      let openPlace = null;
+      const placeWatcher = makeExitWatcher(() => { placePopup.remove(); openPlace = null; });
       function openPlacePopup(place) {
-        cancelPlaceClose();
+        placeWatcher.cancel();
+        openPlace = place;
         const text = document.createElement('div');
         const name = document.createElement(place.url ? 'a' : 'strong');
         name.textContent = place.name;
@@ -894,18 +1221,29 @@
         if (place.note) text.append(document.createElement('br'), place.note);
         placePopup.setLngLat(place.lngLat).setDOMContent(text).addTo(map);
         const el = placePopup.getElement();
-        el.onmouseenter = cancelPlaceClose;
-        el.onmouseleave = schedulePlaceClose;
+        el.onmouseenter = placeWatcher.cancel;
+        el.onmouseleave = (e) => placeWatcher.start(e, place.icon);  // heading back to the icon
       }
-      for (const place of places) {
+      gallery.showPlace = (place) => {
+        photoPopup.remove(); openGroup = null;
+        panToIfHidden(place.lngLat);
+        openPlacePopup(place);
+      };
+      gallery.closePlace = () => { placeWatcher.cancel(); placePopup.remove(); openPlace = null; };
+      gallery.places = places;
+      renderGallery();
+      pins.places = [...places, HOTEL];
+      separatePins();
+      for (const place of [...places, HOTEL]) {
         const icon = document.createElement('button');
         icon.type = 'button';
         icon.className = 'place-icon';
         icon.setAttribute('aria-label', place.name);
         icon.innerHTML = PLACE_ICONS[place.kind] ?? '';
         icon.addEventListener('mouseenter', () => openPlacePopup(place));
-        icon.addEventListener('mouseleave', schedulePlaceClose);
+        icon.addEventListener('mouseleave', (e) => { if (openPlace === place) placeWatcher.start(e, placePopup.getElement()); });
         icon.addEventListener('click', () => openPlacePopup(place));  // for touch screens
+        place.icon = icon;
         new Marker({ element: icon }).setLngLat(place.lngLat).addTo(map);
       }
     });

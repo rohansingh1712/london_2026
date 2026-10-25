@@ -40,5 +40,95 @@
     "label": "Holborn station",
     "lat": 51.517695,
     "lng": -0.119335
+  },
+  {
+    "file": "IMG_8398.jpg",
+    "label": "Borough Market",
+    "lat": 51.5056,
+    "lng": -0.0905
+  },
+  {
+    "file": "IMG_8404.jpg",
+    "label": "Tower of London",
+    "lat": 51.508112,
+    "lng": -0.075949
+  },
+  {
+    "file": "IMG_8416.jpg",
+    "label": "Rambutan",
+    "lat": 51.5055488,
+    "lng": -0.0915485
+  },
+  {
+    "file": "f642a5cc-c755-4a84-9fd3-d990d3ea4442.jpg",
+    "label": "Borough Market",
+    "lat": 51.5052,
+    "lng": -0.091
+  },
+  {
+    "file": "IMG_8430.jpg",
+    "label": "London Bridge station",
+    "lat": 51.5048764,
+    "lng": -0.0851473
+  },
+  {
+    "file": "IMG_8441.jpg",
+    "label": "Chishuru",
+    "lat": 51.516641,
+    "lng": -0.139913
+  },
+  {
+    "file": "IMG_8459.jpg",
+    "label": "London Review Bookshop",
+    "lat": 51.5185113,
+    "lng": -0.124256
+  },
+  {
+    "file": "setty_351.jpg",
+    "label": "Tate Modern",
+    "lat": 51.507595,
+    "lng": -0.099356
+  },
+  {
+    "file": "setty_352.jpg",
+    "label": "Tate Modern",
+    "lat": 51.507595,
+    "lng": -0.099356
+  },
+  {
+    "file": "IMG_8504.jpg",
+    "label": "Fallow",
+    "lat": 51.50917,
+    "lng": -0.13278
+  },
+  {
+    "file": "IMG_8534.jpg",
+    "label": "Mr Wang Hot Pot Aldgate",
+    "lat": 51.5136291,
+    "lng": -0.073563
+  },
+  {
+    "file": "IMG_8552.jpg",
+    "label": "Cannon Street station",
+    "lat": 51.5106685,
+    "lng": -0.0906046
+  },
+  {
+    "file": "IMG_8589.jpg",
+    "label": "Southwark Bridge",
+    "lat": 51.5086,
+    "lng": -0.0941
+  },
+  {
+    "file": "IMG_8594.jpg",
+    "label": "Southwark Bridge",
+    "lat": 51.5086,
+    "lng": -0.0941
+  },
+  {
+    "file": "IMG_8601.jpg",
+    "label": "Idiot Books, Kensington Church Street",
+    "lat": 51.5047267,
+    "lng": -0.1934704
   }
 ]
