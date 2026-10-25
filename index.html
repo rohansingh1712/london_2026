@@ -607,25 +607,44 @@
     }
 
     // One shared popup for photos, so only one is open at a time.
-    const photoPopup = new Popup({ closeButton: false, closeOnClick: false, offset: 22, maxWidth: '1020px', className: 'photo-popup' });
+    const photoPopup = new Popup({ closeButton: false, closeOnClick: false, maxWidth: '1020px', className: 'photo-popup' });
     let openGroup = null;
     const photoWatcher = makeExitWatcher(() => { photoPopup.remove(); openGroup = null; });
-    // The popup's distance from its pin (22 pixels, whichever side it opens on), plus any sideways nudge the pin has.
-    function popupOffset([dx, dy], distance = 22) {
-      const d = distance / Math.SQRT2;
-      const add = ([x, y]) => [x + dx, y + dy];
-      return {
-        center: add([0, 0]), top: add([0, distance]), bottom: add([0, -distance]),
-        left: add([distance, 0]), right: add([-distance, 0]),
-        'top-left': add([d, d]), 'top-right': add([-d, d]), 'bottom-left': add([d, -d]), 'bottom-right': add([-d, -d])
-      };
+    const POPUP_GAP = 22;           // pixels between the pin and the card
+    const POPUP_EDGE_MARGIN = 12;   // the card stays at least this far from the top and bottom of the map
+    const POPUP_TIP_HALF = 10;      // half the height of the card's little pointer
+    // The card always opens to the left or right of its pin, whichever side has room for it. It is centred on the pin
+    // unless that would push it off the top or bottom of the map, in which case it slides just far enough to fit. The
+    // pointer stays level with the pin (stopping short of the card's corners). Also runs when the map moves or resizes.
+    function placePopup(group) {
+      const el = photoPopup.getElement();
+      if (!el) return;
+      const card = el.querySelector('.maplibregl-popup-content');
+      const tip = el.querySelector('.maplibregl-popup-tip');
+      const { clientWidth: width, clientHeight: height } = map.getContainer();
+      const [nudgeX, nudgeY] = group.nudge ?? [0, 0];
+      const point = map.project([group.lng, group.lat]);
+      const pinX = point.x + nudgeX, pinY = point.y + nudgeY;
+      const needed = card.offsetWidth + POPUP_GAP + POPUP_TIP_HALF;
+      const roomRight = width - pinX, roomLeft = pinX;
+      const toRight = roomRight >= needed || (roomLeft < needed && roomRight >= roomLeft);
+      const cardHeight = card.offsetHeight;
+      const top = Math.max(POPUP_EDGE_MARGIN, Math.min(pinY - cardHeight / 2, height - POPUP_EDGE_MARGIN - cardHeight));
+      photoPopup.options.anchor = toRight ? 'left' : 'right';  // 'left' means the card's left edge is at the pin
+      photoPopup.setOffset([(toRight ? POPUP_GAP : -POPUP_GAP) + nudgeX, top + cardHeight / 2 - point.y]);
+      const tipY = Math.max(14, Math.min(pinY - top, cardHeight - 14));
+      tip.style.alignSelf = 'flex-start';
+      tip.style.marginTop = `${tipY - POPUP_TIP_HALF}px`;
     }
+    map.on('move', () => { if (openGroup) placePopup(openGroup); });
+    map.on('resize', () => { if (openGroup) placePopup(openGroup); });
     function openPopup(group) {
       photoWatcher.cancel();
       if (openGroup === group) return; // already showing this group
       openGroup = group;
-      photoPopup.setOffset(popupOffset(group.nudge ?? [0, 0]));
+      photoPopup.options.anchor = 'left';
       photoPopup.setLngLat([group.lng, group.lat]).setDOMContent(buildPopupContent(group)).addTo(map);
+      placePopup(group);
       const el = photoPopup.getElement();
       el.onmouseenter = photoWatcher.cancel;
       el.onmouseleave = (e) => photoWatcher.start(e, group.icon);  // heading back to the icon
